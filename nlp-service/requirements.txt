@@ -1,0 +1,18 @@
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# NLP Stack
+spacy==3.7.2
+spacy-lookups-data==1.0.5
+
+# Pattern matching
+negspacy==1.0.4
+
+# Text preprocessing
+unidecode==1.3.7
+python-dotenv==1.0.0
+
+# API utilities
+python-multipart==0.0.6
