@@ -58,7 +58,7 @@ export const SeverityIndicator = ({ severity }) => {
               {config.label} Severity
             </h3>
             <p className={clsx('text-sm', config.textColor)}>
-              Symptom Score: {score} (Range: {scoreRange})
+              Symptom Score: {score} {scoreRange && `(Range: ${scoreRange})`}
             </p>
           </div>
         </div>

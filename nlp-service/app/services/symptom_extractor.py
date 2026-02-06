@@ -25,6 +25,9 @@ class SymptomExtractor:
         self.text_processor = TextProcessor()
         self.symptom_patterns = SYMPTOM_PATTERNS
         
+        # Store mapping of hash to symptom_id
+        self.match_id_to_symptom = {}
+        
         # Initialize matchers
         self.matcher = Matcher(nlp.vocab)
         self.phrase_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
@@ -36,18 +39,18 @@ class SymptomExtractor:
         for symptom_code, symptom_data in self.symptom_patterns.items():
             symptom_id = symptom_data["id"]
             
-            # Ensure symptom_id is in vocab (required for PhraseMatcher)
-            _ = self.nlp.vocab.strings.add(symptom_id)
-            
             # Add token-based patterns
             if "token_patterns" in symptom_data:
                 for pattern in symptom_data["token_patterns"]:
                     self.matcher.add(f"{symptom_id}_token", [pattern])
             
-            # Add phrase patterns
+            # Add phrase patterns and store mapping
             if "phrases" in symptom_data:
                 patterns = [self.nlp.make_doc(phrase) for phrase in symptom_data["phrases"]]
                 self.phrase_matcher.add(symptom_id, patterns)
+                # Store the hash to symptom_id mapping
+                hash_value = self.nlp.vocab.strings[symptom_id]
+                self.match_id_to_symptom[hash_value] = symptom_id
         
         logger.info(f"Loaded {len(self.matcher)} token patterns and phrase patterns for symptom extraction")
     
@@ -82,8 +85,11 @@ class SymptomExtractor:
         # Process phrase-based matches
         phrase_matches = self.phrase_matcher(doc)
         for match_id, start, end in phrase_matches:
-            # Get the string label from the match_id hash
-            symptom_id = self.nlp.vocab.strings[match_id]
+            # Use our mapping instead of vocab.strings
+            symptom_id = self.match_id_to_symptom.get(match_id)
+            if not symptom_id:
+                logger.warning(f"Unknown match_id: {match_id}")
+                continue
             symptom = self._process_match(doc, start, end, "phrase", symptom_id)
             if symptom and symptom["symptom_id"] not in detected_symptom_ids:
                 symptoms.append(symptom)

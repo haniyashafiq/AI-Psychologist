@@ -68,6 +68,11 @@ const MDD_CRITERIA = {
   },
 
   severityLevels: {
+    subthreshold: {
+      symptomRange: [0, 4],
+      description:
+        'Fewer than 5 symptoms, does not meet diagnostic threshold for Major Depressive Disorder',
+    },
     mild: {
       symptomRange: [5, 6],
       description:
