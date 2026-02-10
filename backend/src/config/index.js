@@ -10,6 +10,10 @@ module.exports = {
     url: process.env.NLP_SERVICE_URL || 'http://localhost:8000',
     timeout: parseInt(process.env.NLP_SERVICE_TIMEOUT) || 10000,
   },
+  ragService: {
+    url: process.env.RAG_SERVICE_URL || 'http://localhost:8001',
+    timeout: parseInt(process.env.RAG_SERVICE_TIMEOUT) || 60000,
+  },
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   },

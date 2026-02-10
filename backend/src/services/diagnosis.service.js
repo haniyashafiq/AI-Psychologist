@@ -1,14 +1,17 @@
 /**
  * Diagnosis service implementing DSM-5 MDD diagnostic logic
+ * Enhanced with RAG-powered AI clinical assessment
  */
 const logger = require('../utils/logger');
 const MDD_CRITERIA = require('../models/mdd-criteria');
 const NLPService = require('./nlp.service');
+const RAGService = require('./rag.service');
 const SeverityService = require('./severity.service');
 
 class DiagnosisService {
   constructor() {
     this.nlpService = new NLPService();
+    this.ragService = new RAGService();
     this.severityService = new SeverityService();
     this.criteria = MDD_CRITERIA;
   }
@@ -20,30 +23,36 @@ class DiagnosisService {
    */
   async diagnose(text) {
     try {
-      // Step 1: Extract symptoms via NLP service
       logger.info('Starting diagnosis process');
+
+      // Step 1: Run NLP symptom extraction and RAG assessment in parallel
+      // RAG is the primary assessment — NLP provides supporting rule-based analysis
       const nlpResults = await this.nlpService.extractSymptoms(text);
 
-      // Step 2: Map NLP results to DSM-5 criteria
+      // Step 2: Map NLP results to DSM-5 criteria (needed as input for RAG)
       const mappedSymptoms = this._mapSymptomsToCriteria(nlpResults.symptoms);
 
-      // Step 3: Apply diagnostic rules
+      // Step 3: Apply rule-based diagnostic logic (supporting analysis)
       const diagnosis = this._applyMDDRules(mappedSymptoms, nlpResults.metadata);
-
-      // Step 4: Calculate severity
       const severity = this.severityService.calculateSeverity(mappedSymptoms, nlpResults.metadata);
-
-      // Step 5: Generate recommendations
       const recommendations = this._generateRecommendations(diagnosis, severity, mappedSymptoms);
-
-      // Step 6: Generate disclaimer
       const disclaimer = this._getDisclaimer();
+
+      // Step 4: Get RAG-powered AI assessment (PRIMARY)
+      // This is the core assessment — errors are propagated to the caller
+      logger.info('Requesting RAG-powered AI clinical assessment (primary)');
+      const aiAssessment = await this.ragService.queryAssessment(text, mappedSymptoms, {
+        durationDays: nlpResults.metadata.duration_days,
+        durationSpecified: nlpResults.metadata.duration_days > 0,
+        functionalImpairment: nlpResults.metadata.functional_impairment || null,
+      });
 
       logger.info(
         `Diagnosis complete: ${diagnosis.meetsThreshold ? 'MDD criteria met' : 'MDD criteria not met'}`
       );
 
       return {
+        aiAssessment,
         diagnosis,
         severity,
         symptoms: mappedSymptoms,

@@ -27,6 +27,37 @@ services:
       retries: 3
       start_period: 40s
 
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: Dockerfile
+    container_name: ai-psych-rag
+    ports:
+      - '8001:8001'
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - LOG_LEVEL=info
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4o
+      - EMBEDDING_MODEL=text-embedding-3-small
+      - EMBEDDING_DIMENSIONS=1536
+      - CHROMA_PERSIST_DIR=/data/chroma_db
+      - CHROMA_COLLECTION_NAME=dsm5
+      - RETRIEVAL_TOP_K=8
+      - ENABLE_CORS=true
+    volumes:
+      - ./rag-service:/app
+      - rag-data:/data
+    networks:
+      - ai-psych-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   backend:
     build:
       context: ./backend
@@ -39,6 +70,8 @@ services:
       - NODE_ENV=development
       - NLP_SERVICE_URL=http://nlp-service:8000
       - NLP_SERVICE_TIMEOUT=10000
+      - RAG_SERVICE_URL=http://rag-service:8001
+      - RAG_SERVICE_TIMEOUT=60000
       - CORS_ORIGIN=http://localhost:5173
       - LOG_LEVEL=debug
     volumes:
@@ -46,6 +79,7 @@ services:
       - /app/node_modules
     depends_on:
       - nlp-service
+      - rag-service
     networks:
       - ai-psych-network
     healthcheck:
@@ -64,7 +98,7 @@ services:
       - '5173:5173'
     environment:
       - VITE_API_BASE_URL=http://localhost:3000
-      - VITE_API_TIMEOUT=30000
+      - VITE_API_TIMEOUT=60000
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -81,3 +115,4 @@ networks:
 
 volumes:
   nlp-models:
+  rag-data:

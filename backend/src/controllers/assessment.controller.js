@@ -47,6 +47,7 @@ const analyzeSymptoms = async (req, res, next) => {
         symptoms: result.symptoms,
         recommendations: result.recommendations,
         disclaimer: result.disclaimer,
+        aiAssessment: result.aiAssessment || null,
       },
       timestamp: new Date().toISOString(),
       processingTime: totalTime,
@@ -69,13 +70,16 @@ const getInfo = async (req, res, next) => {
         version: '1.0.0',
         capabilities: {
           disorder: 'Major Depressive Disorder',
-          criteria: 'DSM-5',
+          criteria: 'DSM-5-TR',
           features: [
             'Natural language symptom extraction',
             'Rule-based diagnostic matching',
             'Severity assessment',
             'Functional impairment detection',
             'Crisis detection',
+            'RAG-powered AI clinical assessment',
+            'DSM-5-TR reference retrieval',
+            'Differential diagnosis considerations',
           ],
         },
         endpoints: {
