@@ -343,7 +343,7 @@ def chunk_text(
 
 def enrich_chunks_with_metadata(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Add disorder detection and section type metadata to each chunk"""
-    for chunk in chunks:
+    for idx, chunk in enumerate(chunks):
         text = chunk["text"]
 
         # Detect disorder
@@ -358,9 +358,9 @@ def enrich_chunks_with_metadata(chunks: List[Dict[str, Any]]) -> List[Dict[str, 
         # Detect section type
         chunk["section_type"] = detect_section_type(text)
 
-        # Generate a unique ID
-        content_hash = hashlib.md5(text.encode()).hexdigest()[:12]
-        chunk["id"] = f"dsm5_{content_hash}"
+        # Generate a unique ID using content hash + index to avoid duplicates
+        content_hash = hashlib.md5(text.encode()).hexdigest()[:10]
+        chunk["id"] = f"dsm5_{idx:04d}_{content_hash}"
 
     return chunks
 

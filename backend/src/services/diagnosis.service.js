@@ -25,16 +25,21 @@ class DiagnosisService {
     try {
       logger.info('Starting diagnosis process');
 
-      // Step 1: Run NLP symptom extraction and RAG assessment in parallel
-      // RAG is the primary assessment — NLP provides supporting rule-based analysis
-      const nlpResults = await this.nlpService.extractSymptoms(text);
+      // Step 1: Run NLP symptom extraction (supporting — non-fatal if it fails)
+      let nlpResults = null;
+      try {
+        nlpResults = await this.nlpService.extractSymptoms(text);
+      } catch (nlpError) {
+        logger.warn('NLP service failed (non-fatal, RAG is primary):', nlpError.message);
+      }
 
-      // Step 2: Map NLP results to DSM-5 criteria (needed as input for RAG)
-      const mappedSymptoms = this._mapSymptomsToCriteria(nlpResults.symptoms);
+      // Step 2: Map NLP results to DSM-5 criteria if available
+      const mappedSymptoms = nlpResults ? this._mapSymptomsToCriteria(nlpResults.symptoms) : [];
 
       // Step 3: Apply rule-based diagnostic logic (supporting analysis)
-      const diagnosis = this._applyMDDRules(mappedSymptoms, nlpResults.metadata);
-      const severity = this.severityService.calculateSeverity(mappedSymptoms, nlpResults.metadata);
+      const nlpMetadata = nlpResults?.metadata || { duration_days: 0, processing_time_ms: 0 };
+      const diagnosis = this._applyMDDRules(mappedSymptoms, nlpMetadata);
+      const severity = this.severityService.calculateSeverity(mappedSymptoms, nlpMetadata);
       const recommendations = this._generateRecommendations(diagnosis, severity, mappedSymptoms);
       const disclaimer = this._getDisclaimer();
 
@@ -42,9 +47,9 @@ class DiagnosisService {
       // This is the core assessment — errors are propagated to the caller
       logger.info('Requesting RAG-powered AI clinical assessment (primary)');
       const aiAssessment = await this.ragService.queryAssessment(text, mappedSymptoms, {
-        durationDays: nlpResults.metadata.duration_days,
-        durationSpecified: nlpResults.metadata.duration_days > 0,
-        functionalImpairment: nlpResults.metadata.functional_impairment || null,
+        durationDays: nlpMetadata.duration_days,
+        durationSpecified: nlpMetadata.duration_days > 0,
+        functionalImpairment: nlpMetadata.functional_impairment || null,
       });
 
       logger.info(
@@ -59,9 +64,10 @@ class DiagnosisService {
         recommendations,
         disclaimer,
         metadata: {
-          processingTime: nlpResults.metadata.processing_time_ms,
-          durationDays: nlpResults.metadata.duration_days,
-          durationSpecified: nlpResults.metadata.duration_days > 0,
+          processingTime: nlpMetadata.processing_time_ms,
+          durationDays: nlpMetadata.duration_days,
+          durationSpecified: nlpMetadata.duration_days > 0,
+          nlpAvailable: nlpResults !== null,
         },
       };
     } catch (error) {

@@ -56,13 +56,40 @@ class EmbeddingService:
         return response.data[0].embedding
 
     def embed_batch_sync(self, texts: List[str]) -> List[List[float]]:
-        """Synchronous batch embedding for use in ingestion scripts"""
+        """Synchronous batch embedding for use in ingestion scripts.
+        Handles token limits by truncating long texts and splitting into sub-batches."""
+        import tiktoken
         from openai import OpenAI
 
         client = OpenAI(api_key=settings.openai_api_key)
-        response = client.embeddings.create(
-            model=self.model,
-            input=texts,
-            dimensions=self.dimensions,
-        )
-        return [item.embedding for item in response.data]
+
+        # Get encoder for token counting / truncation
+        try:
+            encoder = tiktoken.encoding_for_model(self.model)
+        except KeyError:
+            encoder = tiktoken.get_encoding("cl100k_base")
+
+        max_tokens_per_text = 8000  # Leave margin below 8191 limit
+
+        # Truncate any texts that exceed the token limit
+        safe_texts = []
+        for text in texts:
+            tokens = encoder.encode(text)
+            if len(tokens) > max_tokens_per_text:
+                safe_texts.append(encoder.decode(tokens[:max_tokens_per_text]))
+            else:
+                safe_texts.append(text)
+
+        # Process in sub-batches to avoid total token limits
+        all_embeddings = []
+        sub_batch_size = 20  # Smaller batches to stay within API limits
+        for i in range(0, len(safe_texts), sub_batch_size):
+            sub_batch = safe_texts[i:i + sub_batch_size]
+            response = client.embeddings.create(
+                model=self.model,
+                input=sub_batch,
+                dimensions=self.dimensions,
+            )
+            all_embeddings.extend([item.embedding for item in response.data])
+
+        return all_embeddings

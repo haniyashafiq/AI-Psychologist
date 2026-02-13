@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -38,6 +39,10 @@ coverage/
 
 # Testing
 .pytest_cache/
+
+# Data and databases
+rag-service/data/
+*.sqlite3
 
 # Docker
 *.dockerignore
