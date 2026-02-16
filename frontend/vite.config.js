@@ -8,5 +8,10 @@ export default defineConfig({
     host: true, // Allow external access (important for Docker and Render)
     open: true,
     strictPort: false,
+    allowedHosts: [
+      'ai-psych-frontend.onrender.com',
+      '.onrender.com', // Allow all Render subdomains
+      'localhost',
+    ],
   },
 });
