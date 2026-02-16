@@ -26,12 +26,14 @@ services:
         value: true
 
   # RAG Service (Python/FastAPI)
+  # NOTE: Disk storage removed for free tier. ChromaDB will use ephemeral storage.
+  # For persistent storage, upgrade to Starter plan ($7/month) and uncomment disk section.
   - type: web
     name: ai-psych-rag
     runtime: docker
     dockerfilePath: ./rag-service/Dockerfile
     dockerContext: ./rag-service
-    plan: free # Change to 'starter' for production ($7/month)
+    plan: free # Change to 'starter' for production ($7/month) and add disk
     healthCheckPath: /health
     envVars:
       - key: HOST
@@ -49,17 +51,18 @@ services:
       - key: EMBEDDING_DIMENSIONS
         value: 1536
       - key: CHROMA_PERSIST_DIR
-        value: /data/chroma_db
+        value: /tmp/chroma_db
       - key: CHROMA_COLLECTION_NAME
         value: dsm5
       - key: RETRIEVAL_TOP_K
         value: 8
       - key: ENABLE_CORS
         value: true
-    disk:
-      name: rag-data
-      mountPath: /data
-      sizeGB: 1
+    # Uncomment for persistent storage (requires Starter plan):
+    # disk:
+    #   name: rag-data
+    #   mountPath: /data
+    #   sizeGB: 1
 
   # Backend API (Node.js/Express)
   - type: web
@@ -75,21 +78,21 @@ services:
       - key: NODE_ENV
         value: production
       - key: NLP_SERVICE_URL
-        fromService:
-          name: ai-psych-nlp
-          type: web
-          property: url
+        fromService:host
       - key: NLP_SERVICE_TIMEOUT
         value: 10000
       - key: RAG_SERVICE_URL
         fromService:
           name: ai-psych-rag
           type: web
-          property: url
+          property: host
       - key: RAG_SERVICE_TIMEOUT
         value: 60000
       - key: CORS_ORIGIN
         fromService:
+          name: ai-psych-frontend
+          type: web
+          property: host
           name: ai-psych-frontend
           type: web
           property: url
@@ -105,7 +108,7 @@ services:
     plan: free # Change to 'starter' for production ($7/month)
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
+        fromService:host
           name: ai-psych-backend
           type: web
           property: url

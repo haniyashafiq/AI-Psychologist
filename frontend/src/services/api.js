@@ -3,7 +3,24 @@
  */
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+/**
+ * Helper function to ensure URL has protocol
+ * Render provides hostnames without protocol
+ */
+function ensureProtocol(url) {
+  if (!url) return 'http://localhost:3000';
+  // If URL already has protocol, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // If it's localhost or has port number, use http, otherwise use https
+  if (url.includes('localhost') || url.match(/:\d+$/)) {
+    return 'http://' + url;
+  }
+  return 'https://' + url;
+}
+
+const API_BASE_URL = ensureProtocol(import.meta.env.VITE_API_BASE_URL);
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000;
 
 const apiClient = axios.create({
