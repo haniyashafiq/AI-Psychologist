@@ -77,7 +77,7 @@ class SymptomExtractor:
         # Process token-based matches
         token_matches = self.matcher(doc)
         for match_id, start, end in token_matches:
-            symptom = self._process_match(doc, start, end, "token")
+            symptom = self._process_match(doc, start, end, "token", match_id=match_id)
             if symptom and symptom["symptom_id"] not in detected_symptom_ids:
                 symptoms.append(symptom)
                 detected_symptom_ids.add(symptom["symptom_id"])
@@ -117,18 +117,17 @@ class SymptomExtractor:
             }
         }
     
-    def _process_match(self, doc: Doc, start: int, end: int, match_type: str, symptom_id: str = None) -> Dict[str, Any]:
+    def _process_match(self, doc: Doc, start: int, end: int, match_type: str, symptom_id: str = None, match_id: int = None) -> Dict[str, Any]:
         """Process a matched phrase and create symptom object"""
         span = doc[start:end]
         matched_text = span.text
         
         # Determine symptom ID
-        if symptom_id is None:
-            # Extract from matcher label
-            for code, data in self.symptom_patterns.items():
-                if data["id"] in doc.vocab.strings[doc.vocab.strings[matched_text]]:
-                    symptom_id = data["id"]
-                    break
+        if symptom_id is None and match_id is not None:
+            # Extract from matcher label (for token matches)
+            label = doc.vocab.strings[match_id]
+            # Remove "_token" suffix to get symptom_id
+            symptom_id = label.replace("_token", "") if label.endswith("_token") else label
         
         # Find corresponding symptom data
         symptom_data = None
