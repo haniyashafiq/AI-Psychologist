@@ -78,7 +78,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: NLP_SERVICE_URL
-        fromService:host
+        fromService:
+          name: ai-psych-nlp
+          type: web
+          property: host
       - key: NLP_SERVICE_TIMEOUT
         value: 10000
       - key: RAG_SERVICE_URL
@@ -93,9 +96,6 @@ services:
           name: ai-psych-frontend
           type: web
           property: host
-          name: ai-psych-frontend
-          type: web
-          property: url
       - key: LOG_LEVEL
         value: info
 
@@ -108,9 +108,9 @@ services:
     plan: free # Change to 'starter' for production ($7/month)
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:host
+        fromService:
           name: ai-psych-backend
           type: web
-          property: url
+          property: host
       - key: VITE_API_TIMEOUT
         value: 60000
