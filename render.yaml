@@ -78,24 +78,15 @@ services:
       - key: NODE_ENV
         value: production
       - key: NLP_SERVICE_URL
-        fromService:
-          name: ai-psych-nlp
-          type: web
-          property: host
+        value: https://ai-psych-nlp.onrender.com
       - key: NLP_SERVICE_TIMEOUT
         value: 10000
       - key: RAG_SERVICE_URL
-        fromService:
-          name: ai-psych-rag
-          type: web
-          property: host
+        value: https://ai-psych-rag.onrender.com
       - key: RAG_SERVICE_TIMEOUT
         value: 60000
       - key: CORS_ORIGIN
-        fromService:
-          name: ai-psych-frontend
-          type: web
-          property: host
+        value: https://ai-psych-frontend.onrender.com
       - key: LOG_LEVEL
         value: info
 
@@ -108,9 +99,6 @@ services:
     plan: free # Change to 'starter' for production ($7/month)
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          name: ai-psych-backend
-          type: web
-          property: host
+        value: https://ai-psych-backend.onrender.com
       - key: VITE_API_TIMEOUT
         value: 60000
