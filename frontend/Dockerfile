@@ -15,5 +15,6 @@ COPY . .
 # Expose port
 EXPOSE 5173
 
-# Run development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Run development server with host binding for Docker
+# Note: For production, you'd build and serve static files with nginx
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

@@ -1,0 +1,113 @@
+# Render Blueprint Configuration
+# Deploy all services with: render deploy
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  # NLP Service (Python/FastAPI)
+  - type: web
+    name: ai-psych-nlp
+    runtime: docker
+    dockerfilePath: ./nlp-service/Dockerfile
+    dockerContext: ./nlp-service
+    plan: free # Change to 'starter' for production ($7/month)
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: LOG_LEVEL
+        value: info
+      - key: SPACY_MODEL
+        value: en_core_web_md
+      - key: MAX_TEXT_LENGTH
+        value: 5000
+      - key: ENABLE_CORS
+        value: true
+
+  # RAG Service (Python/FastAPI)
+  - type: web
+    name: ai-psych-rag
+    runtime: docker
+    dockerfilePath: ./rag-service/Dockerfile
+    dockerContext: ./rag-service
+    plan: free # Change to 'starter' for production ($7/month)
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8001
+      - key: LOG_LEVEL
+        value: info
+      - key: OPENAI_API_KEY
+        sync: false # Set manually in Render dashboard (Secret)
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: EMBEDDING_DIMENSIONS
+        value: 1536
+      - key: CHROMA_PERSIST_DIR
+        value: /data/chroma_db
+      - key: CHROMA_COLLECTION_NAME
+        value: dsm5
+      - key: RETRIEVAL_TOP_K
+        value: 8
+      - key: ENABLE_CORS
+        value: true
+    disk:
+      name: rag-data
+      mountPath: /data
+      sizeGB: 1
+
+  # Backend API (Node.js/Express)
+  - type: web
+    name: ai-psych-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free # Change to 'starter' for production ($7/month)
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: NLP_SERVICE_URL
+        fromService:
+          name: ai-psych-nlp
+          type: web
+          property: url
+      - key: NLP_SERVICE_TIMEOUT
+        value: 10000
+      - key: RAG_SERVICE_URL
+        fromService:
+          name: ai-psych-rag
+          type: web
+          property: url
+      - key: RAG_SERVICE_TIMEOUT
+        value: 60000
+      - key: CORS_ORIGIN
+        fromService:
+          name: ai-psych-frontend
+          type: web
+          property: url
+      - key: LOG_LEVEL
+        value: info
+
+  # Frontend (React/Vite)
+  - type: web
+    name: ai-psych-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free # Change to 'starter' for production ($7/month)
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          name: ai-psych-backend
+          type: web
+          property: url
+      - key: VITE_API_TIMEOUT
+        value: 60000
